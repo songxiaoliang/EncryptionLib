@@ -14,4 +14,4 @@
 #####（2）加盐加密，可自定义key盐值
 ###使用方式
 #####将该库作为module lib 导入现有项目中即可。
-####具体的使用方式可以浏览：http://blog.csdn.net/u013718120/article/details/56486408
+####算法详细介绍浏览：http://blog.csdn.net/u013718120/article/details/56486408
