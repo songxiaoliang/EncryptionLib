@@ -3,18 +3,24 @@ package com.mycj.encryapp;
 import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.song.encryptionlib.AESUtils;
 import com.android.song.encryptionlib.Base64Utils;
 import com.android.song.encryptionlib.DESUtils;
 import com.android.song.encryptionlib.HexUtil;
 import com.android.song.encryptionlib.MD5Utils;
+import com.android.song.encryptionlib.RSAUtils;
 import com.android.song.encryptionlib.SHAUtils;
+import com.android.song.encryptionlib.TDESUtils;
+import com.android.song.encryptionlib.XORUtils;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -114,6 +120,62 @@ public class MainActivity extends AppCompatActivity {
         deCryptButtons = new Button[]{ btnAESDe, btnBaseDe, btnDESDe, btnMD5De,
                 btnRASDe, btnShaDe, btnTDESDe, btnXORDe};
 
+        etCode.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if(TextUtils.isEmpty(s)){   //如果 EditText 的输入为空了，就清空解密结果
+                    tvDecryptResult.setText("");
+                    tvEncryptResult.setText("");
+                }
+
+//                String str = s.toString();
+//                int index = str.length() - 1;
+//                if(index < 0)
+//                    return;
+//
+//                char c = str.charAt(index);
+//                if(isA2F(c) || isZero2Ten(c)){
+//
+//                }else{
+//                    Toast.makeText(MainActivity.this,"请输入十六进制的数0 - F",Toast.LENGTH_SHORT).show();
+//                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+    }
+
+    private boolean isZero2Ten(char c){
+        if(c >= '0' && c <= '9'){
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isA2F(char c){
+        if( (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') ){
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isContainsNonHexString(String s){
+        char[] chars = s.toCharArray();
+        for(char c : chars){
+            if(!(isZero2Ten(c)||isA2F(c))){
+                return true;
+            }
+        }
+        return false;
     }
 
     //----------------------------- AES 的加密和解密 ------------------------------------
@@ -121,6 +183,10 @@ public class MainActivity extends AppCompatActivity {
         String str = etCode.getText().toString();
         if(TextUtils.isEmpty(str)){
             return ;
+        }
+        if(isContainsNonHexString(str)){
+            Toast.makeText(this,"除了MD5、SHA和Base64之外的加密方法，包含非16进制的数,不能进行加密",Toast.LENGTH_SHORT).show();
+            return;
         }
         generateKey = AESUtils.generateKey();
         byte[] data = HexUtil.hexStringToBytes(str);
@@ -161,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
             return ;
         }
         String str = Base64Utils.decodedStr(s);
-        tvEncryptResult.setText(str);
+        tvDecryptResult.setText(str);
     }
 
     //----------------------------- DES 的加密和解密 -------------------------------------
@@ -169,6 +235,10 @@ public class MainActivity extends AppCompatActivity {
         String s = etCode.getText().toString();
         if(TextUtils.isEmpty(s)){
             return ;
+        }
+        if(isContainsNonHexString(s)){
+            Toast.makeText(this,"除了MD5、SHA和Base64之外的加密方法，包含非16进制的数,不能进行加密",Toast.LENGTH_SHORT).show();
+            return;
         }
         generateDESKey = DESUtils.generateKey();
         byte[] data = HexUtil.hexStringToBytes(s);
@@ -180,10 +250,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void DESDecrypt(View view){
-        if(generateDESKey == null){
+        String s = tvEncryptResult.getText().toString();
+        if(TextUtils.isEmpty(s) || generateDESKey == null){
             return ;
         }
-        String s = tvEncryptResult.getText().toString();
         byte[] encrypt = HexUtil.hexStringToBytes(s);
         byte[] decrypt = DESUtils.decrypt(encrypt, generateDESKey);
         String str = HexUtil.encodeHexStr(decrypt);
@@ -198,10 +268,12 @@ public class MainActivity extends AppCompatActivity {
         }
         String str = MD5Utils.encryptStr(s);
         tvEncryptResult.setText(str);
-
+        current_decrypt_index = INDEX_MD5;
+        disenableOtherDeEncryptButton();
     }
 
     public void MD5Decrypt(View view){
+        Toast.makeText(this,"这种加密是不可逆的",Toast.LENGTH_SHORT).show();
         String s = tvEncryptResult.getText().toString();
         if(TextUtils.isEmpty(s)){
             return ;
@@ -218,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
             return ;
         }
         byte[] data = HexUtil.hexStringToBytes(s);
-
+//        RSAUtils.decryptByPrivateKey();
     }
 
     public void RSADecrypt(View view){
@@ -226,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //------------------------------- SHA 的加密和解密 ----------------------------------------
+    //这种加密不可逆
     public void SHAEncrypt(View view){
         String s = etCode.getText().toString();
         if(TextUtils.isEmpty(s)){
@@ -234,10 +307,12 @@ public class MainActivity extends AppCompatActivity {
 
         String encrypt = SHAUtils.encrypt(s);
         tvEncryptResult.setText(encrypt);
+        current_decrypt_index = INDEX_SHA;
+        disenableOtherDeEncryptButton();
     }
 
     public void SHADecrypt(View view){
-
+        Toast.makeText(this,"这种加密是不可逆的",Toast.LENGTH_SHORT).show();
     }
 
     //-------------------------------- TDES 的加密和解密 ---------------------------------------
@@ -246,11 +321,29 @@ public class MainActivity extends AppCompatActivity {
         if(TextUtils.isEmpty(s)){
             return ;
         }
+        if(isContainsNonHexString(s)){
+            Toast.makeText(this,"除了MD5、SHA和Base64之外的加密方法，包含非16进制的数,不能进行加密",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        generateKey = TDESUtils.generateKey();
+        byte[] bytes = HexUtil.hexStringToBytes(s);
+        byte[] encrypt = TDESUtils.encrypt(bytes, generateKey);
+        String str = HexUtil.encodeHexStr(encrypt);
+        tvEncryptResult.setText(str);
+        current_decrypt_index = INDEX_TDES;
+        disenableOtherDeEncryptButton();
     }
 
     public void TDESDecrypt(View view){
-
+        String s = tvEncryptResult.getText().toString();
+        if(TextUtils.isEmpty(s) || generateKey == null)
+            return;
+        byte[] bytes = HexUtil.hexStringToBytes(s);
+        byte[] decrypt = TDESUtils.decrypt(bytes, generateKey);
+        String str = HexUtil.encodeHexStr(decrypt);
+        tvDecryptResult.setText(str);
     }
+
 
     //-------------------------------- XOR 的加密和解密 ----------------------------------------
     public void XOREncrypt(View view){
@@ -258,11 +351,29 @@ public class MainActivity extends AppCompatActivity {
         if(TextUtils.isEmpty(s)){
             return ;
         }
+        if(isContainsNonHexString(s)){
+            Toast.makeText(this,"除了MD5、SHA和Base64之外的加密方法，包含非16进制的数,不能进行加密",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        byte[] bytes = HexUtil.hexStringToBytes(s);
+        byte[] encrypt = XORUtils.encrypt(bytes);
+        String str = HexUtil.encodeHexStr(encrypt);
+        tvEncryptResult.setText(str);
+        current_decrypt_index = INDEX_XOR;
+        disenableOtherDeEncryptButton();
     }
 
     public void XORDecrypt(View view){
-
+        String s = tvEncryptResult.getText().toString();
+        if(TextUtils.isEmpty(s)){
+            return;
+        }
+        byte[] bytes = HexUtil.hexStringToBytes(s);
+        byte[] decrypt = XORUtils.decrypt(bytes);
+        String str = HexUtil.encodeHexStr(decrypt);
+        tvDecryptResult.setText(str);
     }
+
 
 
     /**
