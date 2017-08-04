@@ -32,7 +32,7 @@ public class XORUtils {
      * @param bytes 原字节数组
      * @return
      */
-    public byte[] encrypt(byte[] bytes) {
+    public static byte[] encrypt(byte[] bytes) {
         int len = bytes.length;
         int key = 0x12;
         for (int i = 0; i < len; i++) {
@@ -47,7 +47,7 @@ public class XORUtils {
      * @param bytes 原字节数组
      * @return
      */
-    public byte[] decrypt(byte[] bytes) {
+    public static byte[] decrypt(byte[] bytes) {
         int len = bytes.length;
         int key = 0x12;
         for (int i = len - 1; i > 0; i--) {
